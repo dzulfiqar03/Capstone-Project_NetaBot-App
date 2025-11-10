@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\admin\HomeController;
+use App\Http\Controllers\admin\ProductController as AdminProductController;
+use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -7,15 +11,26 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::redirect('/','/launch');
+Route::redirect('/', '/launch');
 
 Route::get('/launch', function () {
     return view('launch');
 });
 
+
+// Dashboard Member
 Route::get('/dashboard', function () {
     return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware(['auth', 'roles:member'])
+    ->name('dashboard');
+
+// Dashboard Admin
+Route::get('/admin/dashboard', [HomeController::class, 'index'])
+    ->middleware(['auth', 'verified', 'roles:admin'])
+    ->name('admin.dashboard');
+Route::post('/scrape-products', [ProductController::class, 'scrape'])
+    ->name('scrape.products')
+    ->middleware(['auth', 'verified', 'roles:admin']);
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -23,4 +38,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
+
+Route::get('/chat', [ChatbotController::class, 'index'])->name('chat');
+Route::post('/chat/send', [ChatbotController::class, 'sendMessage']);
+Route::post('/scrape/run', [AdminProductController::class, 'index'])->name('scrape.run');
