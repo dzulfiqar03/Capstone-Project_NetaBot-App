@@ -72,58 +72,38 @@
 
 </style>
 
-<div class="flex flex-col h-screen">
+<div class="flex h-screen">
 
-    <!-- HEADER -->
-    <div class="p-4 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold flex justify-between items-center shadow">
-        <div class="flex items-center gap-2">
-            <img src="https://cdn-icons-png.flaticon.com/512/4712/4712100.png" class="w-8 h-8">
-            Netabot
-        </div>
-        <a href="{{ route('dashboard') }}" class="underline hover:text-gray-200">Back</a>
+    <div class="w-64 bg-gray-100 p-4 overflow-y-auto">
+        <h2 class="font-bold mb-4">Chat History</h2>
+        @foreach($sessions as $key => $sessionChats)
+            <button onclick="loadSession('{{ $key }}')" 
+                    class="w-full text-left mb-2 p-2 rounded hover:bg-gray-200 bg-white shadow">
+                {{ \Carbon\Carbon::parse($sessionChats->first()->created_at)->format('d M Y') }}
+            </button>
+        @endforeach
     </div>
 
     <!-- CHAT AREA -->
-    <<div id="messages" class="flex flex-col flex-grow p-6 overflow-y-auto space-y-3">
-    @foreach($chats as $chat)
-        <!-- User -->
-        <div class="bubble bubble-user">
-            {{ $chat->chat }}
+    <div class="flex-1 flex flex-col">
+        <div id="messages" class="flex flex-col flex-grow p-6 overflow-y-auto space-y-3">
+            <!-- Chat akan dimuat disini -->
         </div>
 
-        <!-- Bot -->
-        <div class="bubble bubble-bot flex items-start gap-3">
-            <img src="https://cdn-icons-png.flaticon.com/512/4712/4712100.png" class="w-6 h-6 mt-1">
-            <div class="content space-y-2 text-sm leading-relaxed">
-                {!! $chat->bot_response !!}
+        <form id="chatForm" class="p-4">
+            <div class="floating-input flex items-center gap-2">
+                <input type="hidden" name="id" id="ID" value="{{ Auth::user()->user_detail->id }}">
+                <input name="chat" id="inputMessage" 
+                    class="flex-grow border-none outline-none px-3"
+                    placeholder="Ketik sesuatu..." required>
+                <button class="bg-cyan-500 hover:bg-cyan-600 text-white px-5 py-2 rounded-full shadow">
+                    Kirim
+                </button>
             </div>
-        </div>
-    @endforeach
-
-    <!-- Default greeting jika belum ada chat -->
-    @if($chats->isEmpty())
-        <div class="bubble bubble-bot flex items-center gap-3">
-            <img src="https://cdn-icons-png.flaticon.com/512/4712/4712100.png" class="w-6 h-6">
-            Halo! Silakan ketik pesan Anda untuk mencari produk Netafarm.
-        </div>
-    @endif
+        </form>
+    </div>
 </div>
 
-
-    <!-- INPUT -->
-    <form id="chatForm" class="p-4">
-        <div class="floating-input flex items-center gap-2">
-            <input type="hidden" name="id" id="ID" value="{{ Auth::user()->user_detail->id }}">
-            <input name="chat" id="inputMessage" 
-                class="flex-grow border-none outline-none px-3"
-                placeholder="Ketik sesuatu..."
-                required>
-            <button class="bg-cyan-500 hover:bg-cyan-600 text-white px-5 py-2 rounded-full shadow">
-                Kirim
-            </button>
-        </div>
-    </form>
-</div>
 
 <script>
 const chatForm = document.getElementById('chatForm');
@@ -155,7 +135,6 @@ function appendMessage(text, isUser = true, isHTML = false) {
     messages.scrollTop = messages.scrollHeight;
 }
 
-// Typing animation
 function showTyping() {
     const div = document.createElement("div");
     div.id = "typingIndicator";
@@ -177,7 +156,7 @@ function removeTyping() {
     if (el) el.remove();
 }
 
-// Submit handler
+
 chatForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
@@ -204,6 +183,26 @@ chatForm.addEventListener("submit", async (e) => {
 
     appendMessage(data.response, false, true);
 });
+
+let currentSession = null;
+
+function loadSession(sessionKey) {
+    currentSession = sessionKey;
+    const messages = document.getElementById('messages');
+    messages.innerHTML = '';
+
+    fetch(`/chat/session/${sessionKey}`)
+        .then(res => res.json())
+        .then(data => {
+            data.forEach(chat => {
+                // User
+                appendMessage(chat.chat, true);
+                // Bot
+                appendMessage(chat.bot_response, false, true);
+            });
+        });
+}
+
 </script>
 
 </x-app-layout>

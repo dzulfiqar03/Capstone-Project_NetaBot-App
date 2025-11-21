@@ -5,6 +5,7 @@ use App\Http\Controllers\admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\ProfileController;
+use App\Models\UserChat;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -36,6 +37,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::get('/chat/session/{key}', function($key){
+    $userId = auth()->user()->user_detail->id;
+    $chats = UserChat::where('id_user', $userId)
+                     ->where('session_key', $key)
+                     ->orderBy('created_at')
+                     ->get();
+    return response()->json($chats);
+});
+
 });
 
 require __DIR__ . '/auth.php';
