@@ -3,73 +3,138 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\UserChat;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ChatbotController extends Controller
 {
     public function index()
     {
-        return view('chat');
+         $userId = auth()->user()->user_detail->id;
+
+    // Ambil semua chat user beserta bot response
+    $chats = UserChat::where('id_user', $userId)
+                     ->orderBy('created_at')
+                     ->get();
+
+    return view('chat', compact('chats'));
     }
 
-    public function sendMessage(Request $request)
-    {
-        $keyword = $request->input('message');
 
-        $products = Product::where('name', 'LIKE', "%{$keyword}%")
-            ->orWhere('description', 'LIKE', "%{$keyword}%")
-            ->limit(10)
-            ->get();
+public function sendMessage(Request $request)
+{
+    $input = $request->input('message');
 
-        if ($products->isEmpty()) {
-            return response()->json([
-                'response' => 'Maaf, produk tidak ditemukan.'
-            ]);
+    $id = $request->input('id');
+
+
+    $words = explode(' ', $input);
+
+
+    $products = Product::select('name','description')->get();
+
+    $databaseWords = [];
+    foreach ($products as $p) {
+        $text = $p->name . ' ' . $p->description;
+        foreach ($words as $word) {
+            if (stripos($text, $word) !== false) {
+                $databaseWords[] = $word;
+            }
         }
+    }
+    $databaseWords = array_unique($databaseWords);
 
-        $response = "Berikut produk yang tersedia:<br>";
 
-        foreach ($products as $p) {
+    $highlightedInput = $input;
+    foreach ($databaseWords as $word) {
+        $highlightedInput = preg_replace("/\b($word)\b/i", "<mark>$1</mark>", $highlightedInput);
+    }
 
-            $image = $p->url_images; //  kolom baru yang valid
-            $link  = $p->link;       //  kolom baru yang valid
+    $query = Product::query();
 
-            $response .= "<div class='flex gap-2 items-center mb-2'>";
+foreach ($databaseWords as $word) { // pakai kata yang ada di database (highlighted)
+    $query->where(function($q) use ($word) {
+        $q->where('name', 'LIKE', "%{$word}%")
+          ->orWhere('description', 'LIKE', "%{$word}%");
+    });
+}
 
+$matchedProducts = $query->limit(10)->get();
+
+
+    if ($matchedProducts->isEmpty()) {
+        $botResponse = 'Maaf, produk tidak ditemukan.';
+    } else {
+        // Bangun HTML bot response
+        $botResponse = "Berikut produk yang tersedia:<br>";
+        foreach ($matchedProducts as $p) {
+            $image = $p->url_images ?? null;
+            $link  = $p->link ?? null;
+
+            $botResponse .= "<div class='flex gap-2 items-center mb-2'>";
             if (!empty($image)) {
-                $response .= "
-                    <img src='{$image}' 
-                         alt='{$p->name}' 
-                         class='w-12 h-12 object-cover rounded'>
-                ";
+                $botResponse .= "<img src='{$image}' alt='{$p->name}' class='w-12 h-12 object-cover rounded'>";
             }
-
-            $response .= "<div>";
-
-            // LINK PRODUK
+            $botResponse .= "<div>";
             if (!empty($link)) {
-                $response .= "
-                    <a href='{$link}' 
-                       target='_blank'
-                       class='text-blue-600 underline font-semibold'>
-                        {$p->name}
-                    </a><br>
-                ";
+                $botResponse .= "<a href='{$link}' target='_blank' class='text-blue-600 underline font-semibold'>{$p->name}</a><br>";
             } else {
-                $response .= "<strong>{$p->name}</strong><br>";
+                $botResponse .= "<strong>{$p->name}</strong><br>";
             }
-
             if (!empty($p->description)) {
-                $response .= "{$p->description}<br>";
+                $botResponse .= "{$p->description}<br>";
             }
+            $botResponse .= "Rp " . number_format($p->price ?? 0, 0, ',', '.');
+            $botResponse .= "</div></div>";
+        }
+    }
 
-            $response .= "Rp " . number_format($p->price, 0, ',', '.');
+    // --------------------------
+    // Bangun respon HTML produk
+    // --------------------------
+    $response = "Berikut produk yang tersedia:<br>";
 
-            $response .= "</div></div>";
+    foreach ($matchedProducts as $p) {
+        $image = $p->url_images ?? null;
+        $link  = $p->link ?? null;
+
+        $response .= "<div class='flex gap-2 items-center mb-2'>";
+
+        if (!empty($image)) {
+            $response .= "<img src='{$image}' alt='{$p->name}' class='w-12 h-12 object-cover rounded'>";
         }
 
-        return response()->json([
-            'response' => $response
-        ]);
+        $response .= "<div>";
+
+        if (!empty($link)) {
+            $response .= "<a href='{$link}' target='_blank' class='text-blue-600 underline font-semibold'>{$p->name}</a><br>";
+        } else {
+            $response .= "<strong>{$p->name}</strong><br>";
+        }
+
+        if (!empty($p->description)) {
+            $response .= "{$p->description}<br>";
+        }
+
+        $response .= "Rp " . number_format($p->price ?? 0, 0, ',', '.');
+
+        $response .= "</div></div>";
     }
+
+
+    if ($id !==null) {
+        UserChat::create([
+                'id_user' => $id,
+                'chat' => $input,
+                'bot_response' =>$botResponse
+            ]);
+    }
+    return response()->json([
+        'highlighted' => $highlightedInput,
+        'response' => $response
+    ]);
+}
+
 }

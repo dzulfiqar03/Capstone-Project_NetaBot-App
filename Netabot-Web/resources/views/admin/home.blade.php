@@ -62,6 +62,7 @@
                             <th scope="col" class="px-6 py-3">Nama Produk</th>
                             <th scope="col" class="px-6 py-3">Harga</th>
                             <th scope="col" class="px-6 py-3">Deskripsi</th>
+                            <th  scope="col" class="px-6 py-3 ">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
@@ -79,6 +80,9 @@
                                 </td>
                                 <td class="px-6 py-3 text-gray-600 dark:text-gray-300 max-w-xs truncate">
                                     {{ Str::limit($items['description'], 80, '...') }}
+                                </td>
+                                <td class="my-auto">
+                                    <a  class="bg-green-800 p-2 rounded-full" href="{{ $items['link'] }}"><span>Details</span></a>
                                 </td>
                             </tr>
                         @endforeach

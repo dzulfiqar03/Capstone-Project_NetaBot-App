@@ -14,4 +14,10 @@ class UserDetail extends Model
     {
         return $this->belongsTo(User::class, 'id_user', 'id');
     }
+
+    public function user_chat()
+{
+    return $this->hasMany(UserChat::class, 'id_user', 'id');
 }
+}
+

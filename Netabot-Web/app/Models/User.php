@@ -54,4 +54,5 @@ public function user_detail()
     return $this->hasOne(UserDetail::class, 'id_user', 'id');
 }
 
+
 }

@@ -84,17 +84,37 @@
     </div>
 
     <!-- CHAT AREA -->
-    <div id="messages" class="flex flex-col flex-grow p-6 overflow-y-auto space-y-3">
+    <<div id="messages" class="flex flex-col flex-grow p-6 overflow-y-auto space-y-3">
+    @foreach($chats as $chat)
+        <!-- User -->
+        <div class="bubble bubble-user">
+            {{ $chat->chat }}
+        </div>
+
+        <!-- Bot -->
+        <div class="bubble bubble-bot flex items-start gap-3">
+            <img src="https://cdn-icons-png.flaticon.com/512/4712/4712100.png" class="w-6 h-6 mt-1">
+            <div class="content space-y-2 text-sm leading-relaxed">
+                {!! $chat->bot_response !!}
+            </div>
+        </div>
+    @endforeach
+
+    <!-- Default greeting jika belum ada chat -->
+    @if($chats->isEmpty())
         <div class="bubble bubble-bot flex items-center gap-3">
             <img src="https://cdn-icons-png.flaticon.com/512/4712/4712100.png" class="w-6 h-6">
             Halo! Silakan ketik pesan Anda untuk mencari produk Netafarm.
         </div>
-    </div>
+    @endif
+</div>
+
 
     <!-- INPUT -->
     <form id="chatForm" class="p-4">
         <div class="floating-input flex items-center gap-2">
-            <input id="inputMessage" 
+            <input type="hidden" name="id" id="ID" value="{{ Auth::user()->user_detail->id }}">
+            <input name="chat" id="inputMessage" 
                 class="flex-grow border-none outline-none px-3"
                 placeholder="Ketik sesuatu..."
                 required>
@@ -109,6 +129,7 @@
 const chatForm = document.getElementById('chatForm');
 const messages = document.getElementById('messages');
 const inputMessage = document.getElementById('inputMessage');
+const ID = document.getElementById('ID');
 
 // Add Message Bubble
 function appendMessage(text, isUser = true, isHTML = false) {
@@ -161,6 +182,7 @@ chatForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const text = inputMessage.value.trim();
+    const id = ID.value;
     if (!text) return;
 
     appendMessage(text, true);
@@ -174,7 +196,7 @@ chatForm.addEventListener("submit", async (e) => {
             "Content-Type": "application/json",
             "X-CSRF-TOKEN": "{{ csrf_token() }}"
         },
-        body: JSON.stringify({ message: text })
+        body: JSON.stringify({ message: text, id: id })
     });
 
     const data = await res.json();
