@@ -5,6 +5,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import time
 import requests
@@ -90,7 +91,8 @@ def scrape_prodnetafarm():
                     'name': nama,
                     'price': harga_angka,
                     'description': deskripsi,
-                    'url-images': gambar
+                    'url_images': gambar,
+                    'link': link
                 }
 
                 # Kirim ke API Laravel
@@ -105,7 +107,7 @@ def scrape_prodnetafarm():
                     "Harga": harga,
                     "Deskripsi": deskripsi,
                     "Gambar": gambar,
-                    "Link": link
+                    "link": link
                 })
 
             except Exception as e:

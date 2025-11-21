@@ -16,15 +16,25 @@ class ProductController extends Controller
             'data' => $product,
         ]);
     }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string',
-            'price' => 'required|numeric',
+            'name'        => 'required|string',
+            'price'       => 'required|numeric',
             'description' => 'nullable|string',
-            'url-images' => 'nullable|string',
+            'url_images'  => 'nullable|string',  // SUDAH DIBENERIN
+            'link'        => 'nullable|string',  // TAMBAH FIELD LINK
         ]);
-        $product = Product::updateOrCreate(['name' => $validated['name']], $validated);
-        return response()->json(['message' => 'Product saved', 'product' => $product], 200);
+
+        $product = Product::updateOrCreate(
+            ['name' => $validated['name']],
+            $validated
+        );
+
+        return response()->json([
+            'message' => 'Product saved',
+            'product' => $product
+        ], 200);
     }
 }

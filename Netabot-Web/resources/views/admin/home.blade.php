@@ -70,7 +70,7 @@
                                 <td class="px-6 py-3 font-medium text-gray-800 dark:text-gray-200">{{ $index + 1 }}
                                 </td>
                                 <td class="px-6 py-3">
-                                    <img src="{{ $items['url-images'] }}" alt="{{ $items['name'] }}"
+                                    <img src="{{ $items['url_images'] }}" alt="{{ $items['name'] }}"
                                         class="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
                                 </td>
                                 <td class="px-6 py-3 font-semibold">{{ $items['name'] }}</td>

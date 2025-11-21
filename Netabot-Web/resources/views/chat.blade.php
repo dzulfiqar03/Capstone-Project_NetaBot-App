@@ -1,18 +1,19 @@
 <x-app-layout>
 <style>
-    /* Background Gradient */
     body {
         background: linear-gradient(135deg, #dff8ff, #f8fbff);
     }
 
     /* Chat Bubbles */
     .bubble {
-        max-width: 70%;
-        padding: 12px 16px;
+        max-width: 75%;
+        padding: 14px 18px;
         border-radius: 18px;
-        margin-bottom: 12px;
+        margin-bottom: 14px;
         animation: fadeInUp 0.35s ease;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
 
     .bubble-user {
@@ -23,15 +24,19 @@
 
     .bubble-bot {
         align-self: flex-start;
-        background: #0fc2f8;
         background: linear-gradient(135deg, #06b6d4, #0ea5e9);
         color: white;
     }
 
-    /* Smooth Animation */
     @keyframes fadeInUp {
         from { opacity: 0; transform: translateY(15px); }
         to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Bot bubble content fix */
+    .bubble-bot .content {
+        overflow-wrap: break-word;
+        word-break: break-word;
     }
 
     /* Typing Indicator */
@@ -39,6 +44,7 @@
         display: inline-flex;
         gap: 4px;
     }
+
     .typing div {
         width: 8px;
         height: 8px;
@@ -46,16 +52,17 @@
         border-radius: 50%;
         animation: blink 1.4s infinite ease-in-out;
     }
+
     .typing div:nth-child(2) { animation-delay: 0.2s; }
     .typing div:nth-child(3) { animation-delay: 0.4s; }
 
     @keyframes blink {
-        0% { opacity: 0.3; transform: translateY(0px); }
+        0% { opacity: 0.3; transform: translateY(0); }
         50% { opacity: 1; transform: translateY(-4px); }
-        100% { opacity: 0.3; transform: translateY(0px); }
+        100% { opacity: 0.3; transform: translateY(0); }
     }
 
-    /* Floating Input Area */
+    /* Input Area */
     .floating-input {
         background: white;
         padding: 14px;
@@ -88,9 +95,9 @@
     <form id="chatForm" class="p-4">
         <div class="floating-input flex items-center gap-2">
             <input id="inputMessage" 
-                   class="flex-grow border-none outline-none px-3"
-                   placeholder="Ketik sesuatu..."
-                   required>
+                class="flex-grow border-none outline-none px-3"
+                placeholder="Ketik sesuatu..."
+                required>
             <button class="bg-cyan-500 hover:bg-cyan-600 text-white px-5 py-2 rounded-full shadow">
                 Kirim
             </button>
@@ -99,73 +106,82 @@
 </div>
 
 <script>
-    const chatForm = document.getElementById('chatForm');
-    const messages = document.getElementById('messages');
-    const inputMessage = document.getElementById('inputMessage');
+const chatForm = document.getElementById('chatForm');
+const messages = document.getElementById('messages');
+const inputMessage = document.getElementById('inputMessage');
 
-    // Append Message (with bubble & animation)
-    function appendMessage(text, isUser = true, isHTML = false) {
-        const div = document.createElement('div');
-        div.className = "bubble " + (isUser ? "bubble-user" : "bubble-bot");
+// Add Message Bubble
+function appendMessage(text, isUser = true, isHTML = false) {
+    const div = document.createElement('div');
+    div.className = "bubble " + (isUser ? "bubble-user" : "bubble-bot");
 
-        if (!isUser) {
-            div.innerHTML = `<div class="flex items-start gap-2">
-                <img src="https://cdn-icons-png.flaticon.com/512/4712/4712100.png" class="w-6 h-6 mt-1"> 
-                <div>${isHTML ? text : text.replace(/\n/g, "<br>")}</div>
-            </div>`;
-        } else {
-            div.textContent = text;
-        }
-
-        messages.appendChild(div);
-        messages.scrollTop = messages.scrollHeight;
-    }
-
-    // Typing indicator
-    function showTyping() {
-        const div = document.createElement("div");
-        div.id = "typingIndicator";
-        div.className = "bubble bubble-bot flex items-center gap-3";
+    if (!isUser) {
         div.innerHTML = `
-            <img src="https://cdn-icons-png.flaticon.com/512/4712/4712100.png" class="w-6 h-6">
-            <div class="typing">
-                <div></div><div></div><div></div>
+            <div class="flex items-start gap-3">
+                <img src="https://cdn-icons-png.flaticon.com/512/4712/4712100.png" 
+                     class="w-6 h-6 mt-1">
+
+                <div class="content space-y-2 text-sm leading-relaxed">
+                    ${isHTML ? text : text.replace(/\n/g, "<br>")}
+                </div>
             </div>
         `;
-        messages.appendChild(div);
-        messages.scrollTop = messages.scrollHeight;
+    } else {
+        div.textContent = text;
     }
 
-    function removeTyping() {
-        const el = document.getElementById("typingIndicator");
-        if (el) el.remove();
-    }
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+}
 
-    // Handle Submit
-    chatForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const text = inputMessage.value.trim();
-        if (!text) return;
+// Typing animation
+function showTyping() {
+    const div = document.createElement("div");
+    div.id = "typingIndicator";
+    div.className = "bubble bubble-bot flex items-center gap-3";
 
-        appendMessage(text, true);
-        inputMessage.value = "";
+    div.innerHTML = `
+        <img src="https://cdn-icons-png.flaticon.com/512/4712/4712100.png" class="w-6 h-6">
+        <div class="typing">
+            <div></div><div></div><div></div>
+        </div>
+    `;
 
-        showTyping();
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+}
 
-        const res = await fetch("/chat/send", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-TOKEN": "{{ csrf_token() }}"
-            },
-            body: JSON.stringify({ message: text })
-        });
+function removeTyping() {
+    const el = document.getElementById("typingIndicator");
+    if (el) el.remove();
+}
 
-        const data = await res.json();
-        removeTyping();
+// Submit handler
+chatForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-        appendMessage(data.response, false, true);
+    const text = inputMessage.value.trim();
+    if (!text) return;
+
+    appendMessage(text, true);
+    inputMessage.value = "";
+
+    showTyping();
+
+    const res = await fetch("/chat/send", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-TOKEN": "{{ csrf_token() }}"
+        },
+        body: JSON.stringify({ message: text })
     });
+
+    const data = await res.json();
+    removeTyping();
+
+    appendMessage(data.response, false, true);
+});
 </script>
 
 </x-app-layout>
