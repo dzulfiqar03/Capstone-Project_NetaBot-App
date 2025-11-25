@@ -23,17 +23,12 @@ class ChatbotController extends Controller
         return view('chat', compact('sessions'));
     }
 
-
-
     public function sendMessage(Request $request)
     {
         $input = $request->input('message');
-
         $id = $request->input('id');
 
-
         $words = explode(' ', $input);
-
 
         $products = Product::select('name', 'description')->get();
 
@@ -47,7 +42,6 @@ class ChatbotController extends Controller
             }
         }
         $databaseWords = array_unique($databaseWords);
-
 
         $highlightedInput = $input;
         foreach ($databaseWords as $word) {
@@ -65,34 +59,45 @@ class ChatbotController extends Controller
 
         $matchedProducts = $query->limit(10)->get();
 
-
         if ($matchedProducts->isEmpty()) {
             $botResponse = 'Maaf, produk tidak ditemukan.';
         } else {
-            // Bangun HTML bot response
             $botResponse = "Berikut produk yang tersedia:<br>";
+
             foreach ($matchedProducts as $p) {
                 $image = $p->url_images ?? null;
                 $link  = $p->link ?? null;
 
                 $botResponse .= "<div class='flex gap-2 items-center mb-2'>";
+
                 if (!empty($image)) {
                     $botResponse .= "<img src='{$image}' alt='{$p->name}' class='w-12 h-12 object-cover rounded'>";
                 }
+
                 $botResponse .= "<div>";
+
                 if (!empty($link)) {
-                    $botResponse .= "<a href='{$link}' target='_blank' class='text-blue-600 underline font-semibold'>{$p->name}</a><br>";
+                    $botResponse .= "<a href='{$link}' target='_blank' 
+                        class='text-blue-600 underline font-semibold'>{$p->name}</a><br>";
                 } else {
                     $botResponse .= "<strong>{$p->name}</strong><br>";
                 }
+
                 if (!empty($p->description)) {
                     $botResponse .= "{$p->description}<br>";
                 }
+
+                // ➕ Tambahkan SOLD & RATING
+                $botResponse .= "Rating: ⭐ {$p->rating}<br>";
+                $botResponse .= "Terjual: {$p->sold}<br>";
+
                 $botResponse .= "Rp " . number_format($p->price ?? 0, 0, ',', '.');
+
                 $botResponse .= "</div></div>";
             }
         }
 
+        // Response untuk frontend
         $response = "Berikut produk yang tersedia:<br>";
 
         foreach ($matchedProducts as $p) {
@@ -108,7 +113,8 @@ class ChatbotController extends Controller
             $response .= "<div>";
 
             if (!empty($link)) {
-                $response .= "<a href='{$link}' target='_blank' class='text-blue-600 underline font-semibold'>{$p->name}</a><br>";
+                $response .= "<a href='{$link}' target='_blank' 
+                    class='text-blue-600 underline font-semibold'>{$p->name}</a><br>";
             } else {
                 $response .= "<strong>{$p->name}</strong><br>";
             }
@@ -116,6 +122,10 @@ class ChatbotController extends Controller
             if (!empty($p->description)) {
                 $response .= "{$p->description}<br>";
             }
+
+            // ➕ Tambahkan SOLD & RATING
+            $response .= "Rating: ⭐ {$p->rating}<br>";
+            $response .= "Terjual: {$p->sold}<br>";
 
             $response .= "Rp " . number_format($p->price ?? 0, 0, ',', '.');
 
@@ -130,6 +140,7 @@ class ChatbotController extends Controller
                 'session_key' => now()->format('Y-m-d'),
             ]);
         }
+
         return response()->json([
             'highlighted' => $highlightedInput,
             'response' => $response

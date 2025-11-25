@@ -18,6 +18,8 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->text('url_images')->nullable();
             $table->text('link')->nullable();
+            $table->string('rating')->nullable();
+            $table->string('sold')->nullable();
             $table->timestamps();
         });
     }

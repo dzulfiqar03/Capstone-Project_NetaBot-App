@@ -18,23 +18,26 @@ class ProductController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'name'        => 'required|string',
-            'price'       => 'required|numeric',
-            'description' => 'nullable|string',
-            'url_images'  => 'nullable|string',  // SUDAH DIBENERIN
-            'link'        => 'nullable|string',  // TAMBAH FIELD LINK
-        ]);
+{
+    $validated = $request->validate([
+        'name'        => 'required|string',
+        'price'       => 'required|numeric',
+        'description' => 'nullable|string',
+        'url_images'  => 'nullable|string',
+        'link'        => 'nullable|string',
+        'rating'      => 'nullable|string',
+        'sold'        => 'nullable|string',
+    ]);
 
-        $product = Product::updateOrCreate(
-            ['name' => $validated['name']],
-            $validated
-        );
+    $product = Product::updateOrCreate(
+        ['name' => $validated['name']],
+        $validated
+    );
 
-        return response()->json([
-            'message' => 'Product saved',
-            'product' => $product
-        ], 200);
-    }
+    return response()->json([
+        'message' => 'Product saved',
+        'product' => $product
+    ], 200);
+}
+
 }
