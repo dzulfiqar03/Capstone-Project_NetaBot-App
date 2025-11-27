@@ -31,10 +31,10 @@
         </div>
 
         <!-- Grid Cards -->
-        <div class="p-8 grid grid-cols-2 md:grid-cols-4 gap-6 flex-grow">
+        <div class="p-8 grid grid-cols-2 md:grid-cols-2 gap-6 flex-grow">
             <!-- Chat Produk -->
             <a href="{{ route('chat') }}"
-                class="bg-gradient-to-b from-cyan-500 to-blue-600 rounded-xl flex flex-col items-center justify-center p-6 text-white shadow-lg transform transition-all hover:scale-105 hover:shadow-2xl hover:shadow-cyan-400/50 cursor-pointer">
+                class="bg-gradient-to-b from-cyan-500 h-40 to-blue-600 rounded-xl flex flex-col items-center justify-center p-6 text-white shadow-lg transform transition-all hover:scale-105 hover:shadow-2xl hover:shadow-cyan-400/50 cursor-pointer">
                 <svg xmlns="http://www.w3.org/2000/svg"
                     class="h-14 w-14 mb-4 transform transition-transform duration-300 hover:rotate-12" fill="none"
                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -44,33 +44,11 @@
                 <span class="font-semibold text-lg">Chat Produk</span>
             </a>
 
-            <!-- Users -->
-            <div
-                class="bg-gradient-to-b from-cyan-500 to-blue-600 rounded-xl flex flex-col items-center justify-center p-6  text-white shadow-lg transform transition-all hover:scale-105 hover:shadow-2xl hover:shadow-blue-400/50 cursor-default">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    class="h-14 w-14 mb-4 transform transition-transform duration-300 hover:rotate-12" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                <span class="font-semibold text-lg">Users</span>
-            </div>
 
-            <!-- Reports -->
-            <div
-                class="bg-gradient-to-b from-cyan-500 to-blue-600 rounded-xl flex flex-col items-center justify-center p-6  text-white shadow-lg transform transition-all hover:scale-105 hover:shadow-2xl hover:shadow-blue-400/50 cursor-default">
-                <svg xmlns="http://www.w3.org/2000/svg"
-                    class="h-14 w-14 mb-4 transform transition-transform duration-300 hover:rotate-12" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 16h6" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8h.01" />
-                </svg>
-                <span class="font-semibold text-lg">Reports</span>
-            </div>
 
             <!-- Settings -->
             <div
-                class="bg-gradient-to-b from-cyan-500 to-blue-600 rounded-xl flex flex-col items-center justify-center p-6  text-white shadow-lg transform transition-all hover:scale-105 hover:shadow-2xl hover:shadow-cyan-400/50 cursor-default">
+                class="bg-gradient-to-b from-cyan-500 h-40 to-blue-600 rounded-xl flex flex-col items-center justify-center p-6  text-white shadow-lg transform transition-all hover:scale-105 hover:shadow-2xl hover:shadow-cyan-400/50 cursor-default">
                 <svg xmlns="http://www.w3.org/2000/svg"
                     class="h-14 w-14 mb-4 transform transition-transform duration-300 hover:rotate-12" fill="none"
                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
