@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use function Laravel\Prompts\table;
-
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 class UserDetail extends Model
 {
 
+    use HasFactory;
     protected $fillable = ['id_user', 'username', 'fullname', 'roles'];
     public function user()
     {

@@ -24,5 +24,28 @@ class UserSeeder extends Seeder
             'fullname' => 'Netabot Admin',
             'roles' => 'admin',
         ]);
+
+         // User::factory()
+        // ->count(300) 
+        // ->create()
+        // ->each(function ($user) {
+        //     UserDetail::factory()->create([
+        //         'id_user' => $user->id
+        //     ]);
+        // });
+
+        // User::doesntHave('user_detail')->each(function ($user) {
+        //     UserDetail::factory()->create([
+        //         'id_user' => $user->id
+        //     ]);
+        // });
+
+        // User::where('email', 'like', '%@example%')
+        //     ->each(function ($user) {
+        //         $username = explode('@', $user->email)[0];
+        //         $user->update([
+        //             'email' => $username.'@gmail.com'
+        //         ]);
+        //     });
     }
 }
