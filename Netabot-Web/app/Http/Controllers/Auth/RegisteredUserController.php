@@ -28,26 +28,38 @@ class RegisteredUserController extends Controller
      *
      * @throws \Illuminate\Validation\ValidationException
      */
-    public function store(Request $request): RedirectResponse
-    {
+public function store(Request $request): RedirectResponse
+{
+    // 1️⃣ Validasi input
+    $validated = $request->validate([
+        'email' => 'required|email|unique:users,email',
+        'password' => 'required|min:6|confirmed', // menggunakan field password_confirmation
+        'userName' => 'required|string|max:50',
+        'fullName' => 'required|string|max:100',
+    ]);
 
+    // 2️⃣ Buat user
+    $user = User::create([
+        'email' => $validated['email'],
+        'password' => Hash::make($validated['password']),
+    ]);
 
-        $user = User::create([
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+    // 3️⃣ Buat detail user
+    UserDetail::create([
+        'id_user' => $user->id,
+        'username' => $validated['userName'],
+        'fullname' => $validated['fullName'],
+        'roles' => 'member',
+    ]);
 
-        UserDetail::create([
-            'id_user' => $user->id, // tambahkan ini
-            'username' => $request->userName,
-            'fullname' => $request->fullName,
-            'roles'=>'member'
-        ]);
+    // 4️⃣ Trigger event Registered
+    event(new Registered($user));
 
-        event(new Registered($user));
+    // 5️⃣ Login otomatis
+    Auth::login($user);
 
-        Auth::login($user);
-
-        return redirect(route('login', absolute: false));
-    }
+    // 6️⃣ Redirect ke login page atau dashboard
+    return redirect(route('login', absolute: false))
+        ->with('success', 'Akun berhasil dibuat! Silahkan login.');
+}
 }

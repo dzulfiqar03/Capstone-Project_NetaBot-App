@@ -4,22 +4,34 @@
             <h1 class="text-3xl font-bold mb-2">Register <span class="font-light">Now</span></h1>
             <p class="text-gray-500 mb-6">Silahkan mendaftar untuk akses login kamu</p>
 
+            @if ($errors->any())
+                <div class="mb-4 p-4 bg-red-100 text-red-700 rounded">
+                    <ul class="list-disc list-inside">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
             <form method="POST" action="{{ route('register') }}" x-data="{ showPassword: false, showConfirm: false }">
                 @csrf
 
-                <input id="userName" type="text" name="userName" placeholder="Masukkan Username" required autofocus
+                <input id="userName" type="text" name="userName" placeholder="Masukkan Username"
+                    value="{{ old('userName') }}"
                     class="mb-3 block w-full rounded-xl border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-cyan-400" />
 
-                <input id="fullName" type="text" name="fullName" placeholder="Masukkan Nama Lengkap" required
+                <input id="fullName" type="text" name="fullName" placeholder="Masukkan Nama Lengkap"
+                    value="{{ old('fullName') }}"
                     class="mb-3 block w-full rounded-xl border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-cyan-400" />
 
-                <input id="email" type="email" name="email" placeholder="Masukkan email" required
+                <input id="email" type="email" name="email" placeholder="Masukkan email"
+                    value="{{ old('email') }}"
                     class="mb-3 block w-full rounded-xl border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-cyan-400" />
 
                 <!-- Password -->
                 <div class="relative mb-3">
                     <input :type="showPassword ? 'text' : 'password'" id="password" name="password"
-                        placeholder="Masukkan password" required
+                        placeholder="Masukkan password"
                         class="block w-full rounded-xl border border-gray-300 p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-cyan-400" />
                     <button type="button" @click="showPassword = !showPassword"
                         class="absolute inset-y-0 right-3 flex items-center text-gray-500">
@@ -41,7 +53,7 @@
                 <!-- Konfirmasi Password -->
                 <div class="relative mb-6">
                     <input :type="showConfirm ? 'text' : 'password'" id="password_confirmation"
-                        name="password_confirmation" placeholder="Konfirmasi password" required
+                        name="password_confirmation" placeholder="Konfirmasi password"
                         class="block w-full rounded-xl border border-gray-300 p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-cyan-400" />
                     <button type="button" @click="showConfirm = !showConfirm"
                         class="absolute inset-y-0 right-3 flex items-center text-gray-500">

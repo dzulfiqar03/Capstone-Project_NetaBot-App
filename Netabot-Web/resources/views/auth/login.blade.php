@@ -4,15 +4,26 @@
             <h1 class="text-3xl font-bold mb-6">Signin</h1>
             <p class="mb-4 text-gray-500">Silahkan masukkan akun yang sudah terdaftar</p>
 
+            @if ($errors->any())
+                <div class="mb-4 p-4 bg-red-100 text-red-700 rounded">
+                    <ul class="list-disc list-inside">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <form method="POST" action="{{ route('login') }}" x-data="{ showPassword: false, showConfirm: false }">
                 @csrf
-                <input id="email" type="email" name="email" placeholder="Masukkan email kamu" required autofocus
-                    class="mb-4 block w-full rounded-xl border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-cyan-400" />
+                <input id="email" type="email" name="email" placeholder="Masukkan email kamu"
+                    value="{{ old('email') }}"
+                    class="mb-2 block w-full rounded-xl border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-cyan-400" />
 
-                              <!-- Password -->
+                <!-- Password -->
                 <div class="relative mb-3">
                     <input :type="showPassword ? 'text' : 'password'" id="password" name="password"
-                        placeholder="Masukkan password" required
+                        value="{{ old('password') }}" placeholder="Masukkan password"
                         class="block w-full rounded-xl border border-gray-300 p-3 pr-10 focus:outline-none focus:ring-2 focus:ring-cyan-400" />
                     <button type="button" @click="showPassword = !showPassword"
                         class="absolute inset-y-0 right-3 flex items-center text-gray-500">
@@ -30,13 +41,14 @@
                         </svg>
                     </button>
                 </div>
+
                 <button type="submit"
                     class="rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 py-3 px-8 text-white font-semibold text-lg w-full hover:opacity-80 transition">
                     Login
                 </button>
             </form>
 
-            
+
 
             <div class="mt-6">
                 <a href="{{ route('register') }}" class="text-sm text-gray-500 hover:underline">
