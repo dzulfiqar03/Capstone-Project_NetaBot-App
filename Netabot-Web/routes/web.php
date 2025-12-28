@@ -7,6 +7,8 @@ use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\ProfileController;
 use App\Models\UserChat;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Http;
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -53,4 +55,29 @@ require __DIR__ . '/auth.php';
 
 Route::get('/chat', [ChatbotController::class, 'index'])->name('chat');
 Route::post('/chat/send', [ChatbotController::class, 'sendMessage']);
-Route::post('/scrape/run', [AdminProductController::class, 'index'])->name('scrape.run');
+
+
+Route::post('/scrape', function () {
+    try {
+        $response = Http::timeout(20)
+                        ->get(env('SCRAPER_URL') . '/scrape');
+
+        if ($response->successful()) {
+            $data = $response->json();
+            return response()->json([
+                'message' => $data['message'] ?? 'Scraping berhasil',
+                'status' => $data['status'] ?? 'success'
+            ]);
+        } else {
+            return response()->json([
+                'error' => 'Gagal memanggil scraper',
+                'http_status' => $response->status(),
+                'body' => $response->body()
+            ], 500);
+        }
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
+    }
+})->name('scrape.run');
