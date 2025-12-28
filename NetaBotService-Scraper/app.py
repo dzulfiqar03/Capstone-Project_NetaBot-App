@@ -183,7 +183,7 @@ def scrape_prodnetafarm():
     df.to_excel("produk_netafarm.xlsx", index=False)
     print(f"\n🎉 Selesai! Total produk tersimpan: {len(df)}\n")
 
-    return int(len(df))
+    return len(df)
 
 @app.route("/scrape", methods=["GET"])
 def scrape_route():
