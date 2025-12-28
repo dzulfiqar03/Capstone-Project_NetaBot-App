@@ -11,18 +11,17 @@ import time
 import requests
 import re
 import json
-import os  # Tambahkan untuk environment variables
-from webdriver_manager.chrome import ChromeDriverManager  # Tambahkan ini
+import os
+from threading import Thread
 
 app = Flask(__name__)
 
-def scrape_prodnetafarm():
-    API_ENDPOINT = os.environ.get('API_ENDPOINT')
+def scrape_prodnetafarm(MAX_SCRAPE=200):
+    API_ENDPOINT = os.environ.get('API_ENDPOINT')  # Optional API endpoint
     BASE_URL = "https://www.tokopedia.com/netafarm/product?page={}"
     current_page = 1
     all_data = []
     total_scraped = 0
-    MAX_SCRAPE = 200
 
     # ----- Setup Selenium headless Chromium -----
     options = Options()
@@ -41,7 +40,6 @@ def scrape_prodnetafarm():
 
     print("\n🚀 Mulai scraping NETAFARM...\n")
 
-    # ----- Function ambil gambar produk -----
     def get_product_image():
         try:
             img = driver.find_element(By.CSS_SELECTOR, "img[data-testid='PDPMainImage']").get_attribute("src")
@@ -49,13 +47,11 @@ def scrape_prodnetafarm():
         except:
             return "-"
 
-    # ----- MAIN LOOP -----
     while total_scraped < MAX_SCRAPE:
         print(f"=== Halaman {current_page} ===")
         driver.get(BASE_URL.format(current_page))
         time.sleep(3)
 
-        # Scroll sampai semua produk muncul
         last_height = driver.execute_script("return document.body.scrollHeight")
         while True:
             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -65,7 +61,6 @@ def scrape_prodnetafarm():
                 break
             last_height = new_height
 
-        # Tunggu produk muncul
         try:
             wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.css-12sieg3 > a")))
         except:
@@ -76,7 +71,6 @@ def scrape_prodnetafarm():
         print(f"📦 {len(produk_elements)} produk ditemukan\n")
         links = [p.get_attribute("href") for p in produk_elements]
 
-        # LOOP PER PRODUK
         for link in links:
             if total_scraped >= MAX_SCRAPE:
                 break
@@ -90,7 +84,6 @@ def scrape_prodnetafarm():
 
                 soup = BeautifulSoup(driver.page_source, "html.parser")
 
-                # Ambil JSON Tokopedia
                 json_script = soup.find("script", {"id": "pdp-script"})
                 rating = "0"
                 sold = "0"
@@ -104,7 +97,6 @@ def scrape_prodnetafarm():
                     except:
                         pass
 
-                # Fallback jika JSON gagal
                 if sold == "0":
                     sold_elem = soup.find("p", {"data-testid": "lblPDPDetailProductSoldCounter"})
                     if sold_elem:
@@ -117,25 +109,21 @@ def scrape_prodnetafarm():
                     if rating_elem:
                         rating = rating_elem.text.strip()
 
-                # Nama & Harga
                 nama = soup.find("h1", {"data-testid": "lblPDPDetailProductName"}).text.strip()
                 harga_text = soup.find("div", {"data-testid": "lblPDPDetailProductPrice"}).text.strip()
                 harga_num = int(re.sub(r'[^0-9]', '', harga_text))
 
-                # Gambar
                 gambar = get_product_image()
 
-                # Deskripsi
                 try:
                     desc_box = driver.find_element(By.CSS_SELECTOR, "div[data-testid='lblPDPDescriptionProduk']")
                     deskripsi = BeautifulSoup(desc_box.get_attribute("innerHTML"), "html.parser").get_text(separator="\n").strip()
                 except:
                     deskripsi = "Tidak ada deskripsi"
 
-                # Simpan ke API
                 if API_ENDPOINT:
                     try:
-                        req = requests.post(API_ENDPOINT, json={
+                        requests.post(API_ENDPOINT, json={
                             "name": nama,
                             "price": harga_num,
                             "description": deskripsi,
@@ -144,16 +132,9 @@ def scrape_prodnetafarm():
                             "sold": sold,
                             "link": link
                         })
-                        status = "✅" if req.status_code == 200 else "⚠️"
                     except:
-                        status = "⚠️"
-                else:
-                    status = "✅"
+                        pass
 
-                print(f"{status} {total_scraped + 1}. {nama}")
-                print(f"   ⭐ Rating: {rating}   |   🟢 Terjual: {sold}")
-
-                # Simpan lokal
                 all_data.append({
                     "No": total_scraped + 1,
                     "Nama": nama,
@@ -166,6 +147,7 @@ def scrape_prodnetafarm():
                 })
 
                 total_scraped += 1
+                print(f"✅ {total_scraped}. {nama}")
 
             except Exception as e:
                 print(f"❌ Error: {e}")
@@ -175,26 +157,26 @@ def scrape_prodnetafarm():
             break
 
         current_page += 1
-        print(f"➡️ Beralih ke halaman {current_page}")
 
     driver.quit()
 
-    # Simpan ke Excel
     df = pd.DataFrame(all_data)
     df.to_excel("produk_netafarm.xlsx", index=False)
     print(f"\n🎉 Selesai! Total produk tersimpan: {len(df)}\n")
-
     return len(df)
 
+
+# ----- Route Flask, scraping dijalankan di background thread -----
 @app.route("/scrape", methods=["GET"])
 def scrape_route():
-    count = scrape_prodnetafarm()
+    thread = Thread(target=scrape_prodnetafarm)
+    thread.start()
     return jsonify({
         "status": "success",
-        "message": f"{count} produk berhasil disimpan."
+        "message": "Scraping berjalan di background, hasil akan disimpan ke Excel."
     })
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # Gunakan env var untuk port (Railway set PORT otomatis)
-    app.run(host="0.0.0.0", port=port, debug=False)  # debug=False untuk production
+    port = int(os.environ.get("PORT", 5000))  # Railway set PORT otomatis
+    app.run(host="0.0.0.0", port=port, debug=False)
