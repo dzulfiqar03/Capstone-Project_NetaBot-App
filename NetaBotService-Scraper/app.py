@@ -244,9 +244,6 @@ def scrape_prodnetafarm():
 
 @app.route("/scrape", methods=["GET", "POST"])
 def scrape_route():
-    if request.method == "POST":
-        # Tambahkan logika jika perlu, misalnya parse data dari request
-        pass
     count = scrape_prodnetafarm()
     return jsonify({
         "status": "success",
