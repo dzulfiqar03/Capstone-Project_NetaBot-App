@@ -243,7 +243,7 @@ def scrape_prodnetafarm():
 
     return int(len(df))
 
-@app.route("/scrape", methods=["GET", "POST"])
+@app.route("/scrape", methods=["GET"])
 def scrape_route():
     count = scrape_prodnetafarm()
     return jsonify({
