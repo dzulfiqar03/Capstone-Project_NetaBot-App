@@ -22,6 +22,7 @@ def scrape_prodnetafarm():
     current_page = 1
     all_data = []
     total_scraped = 0
+    MAX_SCRAPE = 200
 
     # ----- Setup Selenium headless Chromium -----
     options = Options()
