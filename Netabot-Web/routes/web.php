@@ -27,7 +27,7 @@ Route::get('/dashboard', function () {
 
 // Dashboard Admin
 Route::get('/admin/dashboard', [HomeController::class, 'index'])
-    ->middleware(['auth', 'verified', 'roles:admin'])
+    ->middleware(['auth', 'roles:admin'])
     ->name('admin.dashboard');
 Route::post('/scrape-products', [ProductController::class, 'scrape'])
     ->name('scrape.products')
