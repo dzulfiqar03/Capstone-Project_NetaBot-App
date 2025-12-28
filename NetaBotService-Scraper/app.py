@@ -21,16 +21,14 @@ def scrape_prodnetafarm():
     BASE_URL = "https://www.tokopedia.com/netafarm/product/page/{}"
 
     options = Options()
-    options.add_argument("--headless")  # Tambahkan untuk Railway
+    options.binary_location = "/usr/bin/chromium"  # path Chromium di container
+    options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1920,1080")
-    options.add_argument("--start-maximized")
-    
-    # Gunakan webdriver-manager untuk install chromedriver otomatis
-    # Pakai Service
-    service = Service(ChromeDriverManager().install())
+
+    # Gunakan Service dengan chromedriver yang sudah diinstall via apt
+    service = Service("/usr/bin/chromedriver")
     driver = webdriver.Chrome(service=service, options=options)
     wait = WebDriverWait(driver, 20)
 
