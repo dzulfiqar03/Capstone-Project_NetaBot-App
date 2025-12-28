@@ -17,7 +17,7 @@ from webdriver_manager.chrome import ChromeDriverManager  # Tambahkan ini
 app = Flask(__name__)
 
 def scrape_prodnetafarm():
-    API_ENDPOINT = os.environ.get('API_ENDPOINT', 'http://localhost:8000/api/products')  # Gunakan env var
+    API_ENDPOINT = os.environ.get('API_ENDPOINT')  # Gunakan env var
     BASE_URL = "https://www.tokopedia.com/netafarm/product/page/{}"
 
     options = Options()
