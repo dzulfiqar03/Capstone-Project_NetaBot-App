@@ -30,9 +30,9 @@ class ProductController extends Controller
     ]);
 
     $product = Product::updateOrCreate(
-        ['name' => $validated['name']],
-        $validated
-    );
+    ['link' => $validated['link']], // gunakan link sebagai unique key
+    $validated
+);
 
     return response()->json([
         'message' => 'Product saved',
