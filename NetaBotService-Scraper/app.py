@@ -24,7 +24,7 @@ scrape_status = {
     "message": ""
 }
 
-def scrape_prodnetafarm(MAX_SCRAPE=200):
+def scrape_prodnetafarm(MAX_SCRAPE=1000):
     scrape_status["running"] = True
     scrape_status["total_scraped"] = 0
     scrape_status["last_product"] = ""
