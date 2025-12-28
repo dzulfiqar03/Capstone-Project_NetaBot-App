@@ -18,7 +18,7 @@ app = Flask(__name__)
 
 def scrape_prodnetafarm():
     API_ENDPOINT = os.environ.get('API_ENDPOINT')  # Gunakan env var
-    BASE_URL = "https://www.tokopedia.com/netafarm/product/page/{}"
+    BASE_URL = "https://www.tokopedia.com/netafarm/product"
 
     options = Options()
     options.binary_location = "/usr/bin/chromium"  # path Chromium di container
