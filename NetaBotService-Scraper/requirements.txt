@@ -4,8 +4,9 @@ webdriver-manager>=4.0.1
 beautifulsoup4>=4.12.2
 requests>=2.31.0
 pandas>=2.1.0
-chromium
-chromium-driver
+chromium-browser
+chromium-browser-l10n
+chromium-codecs-ffmpeg-extra
 fonts-liberation
 libnss3
 libx11-xcb1
