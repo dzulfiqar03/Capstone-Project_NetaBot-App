@@ -74,7 +74,7 @@ def scrape_prodnetafarm(MAX_SCRAPE=200):
                 last_height = new_height
 
             # Ambil semua link produk yang mengandung /product/
-            produk_elements = driver.find_elements(By.CSS_SELECTOR, 'a[href*="/product/"]')
+            produk_elements = driver.find_elements(By.CSS_SELECTOR, "div.css-tjjb18 div.css-79elbk > a")
             scrape_status["message"] = f"Ditemukan {len(produk_elements)} link produk"
             links = [p.get_attribute("href") for p in produk_elements if p.get_attribute("href")]
 
