@@ -23,10 +23,7 @@ def create_driver():
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--window-size=1920,1080")
 
-    service = Service(ChromeDriverManager().install())
-
     return webdriver.Chrome(
-        service=service,
         options=chrome_options
     )
 
