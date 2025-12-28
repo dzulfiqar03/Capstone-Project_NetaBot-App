@@ -18,37 +18,37 @@
             <div id="scrapeStatus" class="mt-3 text-sm text-gray-700"></div>
 
             <script>
-                document.getElementById('btnScrape').addEventListener('click', function() {
-                    let btn = this;
-                    btn.disabled = true;
-                    btn.innerText = 'Menjalankan...';
+document.getElementById('btnScrape').addEventListener('click', function() {
+    let btn = this;
+    btn.disabled = true;
+    btn.innerText = 'Menjalankan...';
 
-                    fetch('{{ route('scrape.run') }}', {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json',
-                                'Content-Type': 'application/json'
-                            }
-                        })
-                        .then(res => res.json())
-                        .then(data => {
-                            btn.disabled = false;
-                            btn.innerText = 'Jalankan Scraping';
+    fetch('{{ route('scrape.run') }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerText = 'Jalankan Scraping';
+        document.getElementById('scrapeStatus').innerHTML =
+            data.message ?
+            `<span class="text-green-600">${data.message}</span>` :
+            `<span class="text-red-600">${data.error}</span>`;
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerText = 'Jalankan Scraping';
+        document.getElementById('scrapeStatus').innerHTML =
+            `<span class="text-red-600">${err}</span>`;
+    });
+});
+</script>
 
-                            document.getElementById('scrapeStatus').innerHTML =
-                                data.message ?
-                                `<span class="text-green-600">${data.message}</span>` :
-                                `<span class="text-red-600">${data.error}</span>`;
-                        })
-                        .catch(err => {
-                            btn.disabled = false;
-                            btn.innerText = 'Jalankan Scraping';
-                            document.getElementById('scrapeStatus').innerHTML =
-                                `<span class="text-red-600">${err}</span>`;
-                        });
-                });
-            </script>
                 </div>
                
             </div>
