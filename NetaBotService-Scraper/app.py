@@ -16,7 +16,7 @@ from threading import Thread
 
 app = Flask(__name__)
 
-# Global status
+# Global status untuk monitoring
 scrape_status = {
     "running": False,
     "total_scraped": 0,
@@ -25,7 +25,6 @@ scrape_status = {
 }
 
 def scrape_prodnetafarm(MAX_SCRAPE=200):
-    # Set status awal
     scrape_status["running"] = True
     scrape_status["total_scraped"] = 0
     scrape_status["last_product"] = ""
@@ -37,7 +36,7 @@ def scrape_prodnetafarm(MAX_SCRAPE=200):
     all_data = []
     total_scraped = 0
 
-    # Setup Selenium headless
+    # Setup Selenium headless Chromium
     options = Options()
     options.binary_location = "/usr/bin/chromium"
     options.add_argument("--headless=new")
@@ -64,7 +63,7 @@ def scrape_prodnetafarm(MAX_SCRAPE=200):
             driver.get(BASE_URL.format(current_page))
             time.sleep(3)
 
-            # Scroll sampai semua item termuat
+            # Scroll hingga semua item termuat
             last_height = driver.execute_script("return document.body.scrollHeight")
             while True:
                 driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -74,15 +73,16 @@ def scrape_prodnetafarm(MAX_SCRAPE=200):
                     break
                 last_height = new_height
 
-            # Ambil semua <a> yang URL-nya mengandung /product/
+            # Ambil semua link produk yang mengandung /product/
             produk_elements = driver.find_elements(By.CSS_SELECTOR, 'a[href*="/product/"]')
-            scrape_status["message"] = f"Ditemukan {len(produk_elements)} product links"
+            scrape_status["message"] = f"Ditemukan {len(produk_elements)} link produk"
             links = [p.get_attribute("href") for p in produk_elements if p.get_attribute("href")]
 
             if not links:
-                scrape_status["message"] = "Tidak ada link produk, hentikan"
+                scrape_status["message"] = "Tidak ada link produk, hentikan scraping."
                 break
 
+            # Loop per produk
             for link in links:
                 if total_scraped >= MAX_SCRAPE:
                     break
@@ -96,7 +96,7 @@ def scrape_prodnetafarm(MAX_SCRAPE=200):
 
                     soup = BeautifulSoup(driver.page_source, "html.parser")
 
-                    # Parsing rating & sold
+                    # Ambil rating & sold
                     json_script = soup.find("script", {"id": "pdp-script"})
                     rating = "0"
                     sold = "0"
@@ -135,7 +135,7 @@ def scrape_prodnetafarm(MAX_SCRAPE=200):
                     except:
                         deskripsi = "Tidak ada deskripsi"
 
-                    # Simpan ke API jika dipasang
+                    # Simpan ke API jika ada
                     if API_ENDPOINT:
                         try:
                             requests.post(API_ENDPOINT, json={
@@ -182,7 +182,7 @@ def scrape_prodnetafarm(MAX_SCRAPE=200):
         scrape_status["message"] = f"Selesai! Total produk tersimpan: {len(df)}"
         scrape_status["running"] = False
 
-# Route start scraping (background)
+# Route untuk memulai scraping
 @app.route("/scrape", methods=["GET"])
 def scrape_route():
     if scrape_status["running"]:
@@ -191,7 +191,7 @@ def scrape_route():
     thread.start()
     return jsonify({"status":"started","message":"Scraping dimulai di background"})
 
-# Route status
+# Route untuk cek status
 @app.route("/scrape_status", methods=["GET"])
 def status_route():
     return jsonify(scrape_status)
