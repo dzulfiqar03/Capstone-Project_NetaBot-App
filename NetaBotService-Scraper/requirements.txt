@@ -1,6 +1,6 @@
-flask
-selenium
-webdriver-manager
-beautifulsoup4
-pandas
-requests
+selenium==4.15.2
+beautifulsoup4==4.12.2
+flask==3.0.0
+pandas==2.1.3
+requests==2.31.0
+webdriver-manager==4.0.1
