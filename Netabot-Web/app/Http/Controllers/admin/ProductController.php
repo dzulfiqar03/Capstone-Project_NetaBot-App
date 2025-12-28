@@ -12,7 +12,7 @@ class ProductController extends Controller
     {
         try {
             
-            $response = Http::post(env('SCRAPER_URL') . '/scrape');
+            $response = Http::get(env('SCRAPER_URL') . '/scrape');
 
             if ($response->successful()) {
                 $data = $response->json();
