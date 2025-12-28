@@ -28,7 +28,9 @@ def scrape_prodnetafarm():
     options.add_argument("--start-maximized")
     
     # Gunakan webdriver-manager untuk install chromedriver otomatis
-    driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+    # Pakai Service
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
     wait = WebDriverWait(driver, 20)
 
     current_page = 1
