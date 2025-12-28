@@ -1,6 +1,7 @@
 from flask import Flask, jsonify
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -16,7 +17,7 @@ API_ENDPOINT = os.environ.get("API_ENDPOINT")
 BASE_URL = "https://www.tokopedia.com/netafarm/product/page/{}"
 
 def create_driver():
-    options = Options()
+    options = uc.ChromeOptions()
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
@@ -24,9 +25,8 @@ def create_driver():
     options.add_argument("--disable-extensions")
     options.add_argument("--remote-debugging-port=9222")
 
-    # webdriver-manager akan download ChromeDriver + optional Chromium
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=options)
+    # undetected-chromedriver otomatis download Chromium + chromedriver
+    driver = uc.Chrome(options=options)
     return driver
 
 def scrape_prodnetafarm():
