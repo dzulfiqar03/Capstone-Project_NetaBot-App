@@ -11,7 +11,8 @@ class ProductController extends Controller
     public function index()
     {
         try {
-            $response = Http::get('http://127.0.0.1:5000/scrape');
+            
+            $response = Http::post(env('SCRAPER_URL') . '/scrape');
 
             if ($response->successful()) {
                 $data = $response->json();
