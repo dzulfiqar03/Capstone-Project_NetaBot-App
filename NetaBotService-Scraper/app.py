@@ -107,7 +107,7 @@ def scrape_prodnetafarm():
     driver.quit()
     return total_scraped
 
-@app.route("/scrape", methods=["POST"])
+@app.route("/scrape", methods=["GET"])
 def scrape():
     count = scrape_prodnetafarm()
     return jsonify({
