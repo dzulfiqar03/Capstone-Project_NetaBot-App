@@ -18,122 +18,172 @@ app = Flask(__name__)
 
 def scrape_prodnetafarm():
     API_ENDPOINT = os.environ.get('API_ENDPOINT')
-    BASE_URL = "https://www.tokopedia.com/netafarm/product"
+    BASE_URL = "https://www.tokopedia.com/netafarm/product?page={}"
+    current_page = 1
+    all_data = []
+    total_scraped = 0
 
+    # ----- Setup Selenium headless Chromium -----
     options = Options()
     options.binary_location = "/usr/bin/chromium"
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
+    options.add_argument(
+        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    )
 
     service = Service("/usr/bin/chromedriver")
     driver = webdriver.Chrome(service=service, options=options)
-    wait = WebDriverWait(driver, 20)
+    wait = WebDriverWait(driver, 10)
 
-    total_scraped = 0
-    all_data = []
+    print("\n🚀 Mulai scraping NETAFARM...\n")
 
-    print("\n🚀 Mulai scraping NETAFARM dengan URL biasa...\n")
-
-    driver.get(BASE_URL)
-    time.sleep(3)
-
-    # ===== Scroll hingga semua produk dimuat =====
-    previous_count = 0
-    while True:
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
-        produk_elements = driver.find_elements(By.CSS_SELECTOR, "a[href^='https://www.tokopedia.com/netafarm/']")
-        produk_links = list(set([p.get_attribute("href") for p in produk_elements]))
-        if len(produk_links) == previous_count:
-            break
-        previous_count = len(produk_links)
-    print(f"📦 Total produk ditemukan: {len(produk_links)}")
-
-    # ===== Loop tiap produk =====
-    for link in produk_links:
+    # ----- Function ambil gambar produk -----
+    def get_product_image():
         try:
-            driver.get(link)
-            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "h1[data-testid='lblPDPDetailProductName']")))
-            time.sleep(1)
+            img = driver.find_element(By.CSS_SELECTOR, "img[data-testid='PDPMainImage']").get_attribute("src")
+            return img
+        except:
+            return "-"
 
-            soup = BeautifulSoup(driver.page_source, "html.parser")
+    # ----- MAIN LOOP -----
+    while total_scraped < MAX_SCRAPE:
+        print(f"=== Halaman {current_page} ===")
+        driver.get(BASE_URL.format(current_page))
+        time.sleep(3)
 
-            # Nama
-            nama_elem = soup.find("h1", {"data-testid": "lblPDPDetailProductName"})
-            nama = nama_elem.text.strip() if nama_elem else "Unknown"
+        # Scroll sampai semua produk muncul
+        last_height = driver.execute_script("return document.body.scrollHeight")
+        while True:
+            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            time.sleep(2)
+            new_height = driver.execute_script("return document.body.scrollHeight")
+            if new_height == last_height:
+                break
+            last_height = new_height
 
-            # Harga
-            harga_elem = soup.find("div", {"data-testid": "lblPDPDetailProductPrice"})
-            harga_text = harga_elem.text.strip() if harga_elem else "0"
-            harga_num = int(re.sub(r'[^0-9]', '', harga_text))
+        # Tunggu produk muncul
+        try:
+            wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.css-12sieg3 > a")))
+        except:
+            print("🚫 Tidak ada produk di halaman ini.")
+            break
 
-            # Rating
-            rating_elem = soup.find("span", {"data-testid": "lblPDPDetailProductRatingNumber"})
-            rating = rating_elem.text.strip() if rating_elem else "0"
+        produk_elements = driver.find_elements(By.CSS_SELECTOR, "div.css-12sieg3 > a")
+        print(f"📦 {len(produk_elements)} produk ditemukan\n")
+        links = [p.get_attribute("href") for p in produk_elements]
 
-            # Sold
-            sold_elem = soup.find("p", {"data-testid": "lblPDPDetailProductSoldCounter"})
-            sold = "0"
-            if sold_elem:
-                angka = re.findall(r'\d+', sold_elem.text)
-                if angka:
-                    sold = angka[0]
+        # LOOP PER PRODUK
+        for link in links:
+            if total_scraped >= MAX_SCRAPE:
+                break
 
-            # Gambar
             try:
-                gambar_elem = driver.find_element(By.CSS_SELECTOR, "img[data-testid='PDPMainImage']")
-                gambar = gambar_elem.get_attribute("src")
-            except:
-                gambar = "-"
+                driver.get(link)
+                wait.until(EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, "h1[data-testid='lblPDPDetailProductName']")
+                ))
+                time.sleep(1)
 
-            # Deskripsi
-            try:
-                desc_box = driver.find_element(By.CSS_SELECTOR, "div[data-testid='lblPDPDescriptionProduk']")
-                deskripsi = BeautifulSoup(desc_box.get_attribute("innerHTML"), "html.parser").get_text(separator="\n").strip()
-            except:
-                deskripsi = "Tidak ada deskripsi"
+                soup = BeautifulSoup(driver.page_source, "html.parser")
 
-            # Kirim ke API
-            data = {
-                "name": nama,
-                "price": harga_num,
-                "description": deskripsi,
-                "url_images": gambar,
-                "rating": rating,
-                "sold": sold,
-                "link": link
-            }
-            try:
-                req = requests.post(API_ENDPOINT, json=data)
-                status = "✅" if req.status_code == 200 else f"⚠️({req.status_code})"
-            except:
-                status = "⚠️(API Error)"
+                # Ambil JSON Tokopedia
+                json_script = soup.find("script", {"id": "pdp-script"})
+                rating = "0"
+                sold = "0"
+                if json_script:
+                    try:
+                        data_json = json.loads(json_script.text)
+                        if "rating" in data_json and "score" in data_json["rating"]:
+                            rating = str(data_json["rating"]["score"])
+                        if "txStats" in data_json and "countSold" in data_json["txStats"]:
+                            sold = str(data_json["txStats"]["countSold"])
+                    except:
+                        pass
 
-            total_scraped += 1
-            print(f"{status} {total_scraped}. {nama} | ⭐ {rating} | 🟢 {sold}")
+                # Fallback jika JSON gagal
+                if sold == "0":
+                    sold_elem = soup.find("p", {"data-testid": "lblPDPDetailProductSoldCounter"})
+                    if sold_elem:
+                        angka = re.findall(r'\d+', sold_elem.text)
+                        if angka:
+                            sold = angka[0]
 
-            all_data.append({
-                "No": total_scraped,
-                "Nama": nama,
-                "Harga": harga_text,
-                "Rating": rating,
-                "Sold": sold,
-                "Deskripsi": deskripsi,
-                "Gambar": gambar,
-                "Link": link
-            })
+                if rating == "0":
+                    rating_elem = soup.find("span", {"data-testid": "lblPDPDetailProductRatingNumber"})
+                    if rating_elem:
+                        rating = rating_elem.text.strip()
 
-        except Exception as e:
-            print(f"❌ Error: {e}")
-            continue
+                # Nama & Harga
+                nama = soup.find("h1", {"data-testid": "lblPDPDetailProductName"}).text.strip()
+                harga_text = soup.find("div", {"data-testid": "lblPDPDetailProductPrice"}).text.strip()
+                harga_num = int(re.sub(r'[^0-9]', '', harga_text))
+
+                # Gambar
+                gambar = get_product_image()
+
+                # Deskripsi
+                try:
+                    desc_box = driver.find_element(By.CSS_SELECTOR, "div[data-testid='lblPDPDescriptionProduk']")
+                    deskripsi = BeautifulSoup(desc_box.get_attribute("innerHTML"), "html.parser").get_text(separator="\n").strip()
+                except:
+                    deskripsi = "Tidak ada deskripsi"
+
+                # Simpan ke API
+                if API_ENDPOINT:
+                    try:
+                        req = requests.post(API_ENDPOINT, json={
+                            "name": nama,
+                            "price": harga_num,
+                            "description": deskripsi,
+                            "url_images": gambar,
+                            "rating": rating,
+                            "sold": sold,
+                            "link": link
+                        })
+                        status = "✅" if req.status_code == 200 else "⚠️"
+                    except:
+                        status = "⚠️"
+                else:
+                    status = "✅"
+
+                print(f"{status} {total_scraped + 1}. {nama}")
+                print(f"   ⭐ Rating: {rating}   |   🟢 Terjual: {sold}")
+
+                # Simpan lokal
+                all_data.append({
+                    "No": total_scraped + 1,
+                    "Nama": nama,
+                    "Harga": harga_text,
+                    "Rating": rating,
+                    "Sold": sold,
+                    "Deskripsi": deskripsi,
+                    "Gambar": gambar,
+                    "Link": link
+                })
+
+                total_scraped += 1
+
+            except Exception as e:
+                print(f"❌ Error: {e}")
+                continue
+
+        if total_scraped >= MAX_SCRAPE:
+            break
+
+        current_page += 1
+        print(f"➡️ Beralih ke halaman {current_page}")
 
     driver.quit()
+
+    # Simpan ke Excel
     df = pd.DataFrame(all_data)
-    df.to_excel("produk_netafarm_url.xlsx", index=False)
-    print(f"\n🎉 Selesai! Total produk tersimpan: {len(df)}")
-    return len(df)
+    df.to_excel("produk_netafarm.xlsx", index=False)
+    print(f"\n🎉 Selesai! Total produk tersimpan: {len(df)}\n")
+
+    return int(len(df))
 
 @app.route("/scrape", methods=["GET"])
 def scrape_route():
