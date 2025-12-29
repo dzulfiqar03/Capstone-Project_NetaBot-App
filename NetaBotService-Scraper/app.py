@@ -82,10 +82,11 @@ def scrape_prodnetafarm(MAX_SCRAPE=1000):
             driver.get(BASE_URL.format(current_page))
             time.sleep(2)  # tunggu halaman load
 
-            # Ambil semua link produk di halaman ini
-            produk_elements = driver.find_elements(By.CSS_SELECTOR, "a.css-79elbk")
-            links = list({p.get_attribute("href") for p in produk_elements if p.get_attribute("href")})
-            scrape_status["message"] = f"Ditemukan {len(links)} produk di page {current_page}"
+            # Ambil semua link produk yang mengandung /product/
+            produk_elements = driver.find_elements(By.CSS_SELECTOR, "div.css-tjjb18 div.css-79elbk > a")
+            scrape_status["message"] = f"Ditemukan {len(produk_elements)} link produk"
+            links = [p.get_attribute("href") for p in produk_elements if p.get_attribute("href")]
+
 
             if not links:
                 break
