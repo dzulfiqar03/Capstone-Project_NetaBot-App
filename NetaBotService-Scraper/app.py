@@ -53,7 +53,7 @@ def scrape_prodnetafarm(MAX_SCRAPE=1000):
 
     def get_product_image():
         try:
-            return driver.find_element(By.CSS_SELECTOR, "img[data-testid='PDPMainImage']").get_attribute("src")
+            return driver.find_element(By.CSS_SELECTOR, "img[alt='product-image']").get_attribute("src")
         except:
             return "-"
 
