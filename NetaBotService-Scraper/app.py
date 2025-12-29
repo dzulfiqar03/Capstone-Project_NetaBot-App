@@ -53,7 +53,32 @@ def scrape_prodnetafarm(MAX_SCRAPE=1000):
 
     def get_product_image():
         try:
-            return driver.find_element(By.CSS_SELECTOR, "img[alt='product-image']").get_attribute("src")
+            img = driver.find_element(
+                By.CSS_SELECTOR,
+                "div#pdp_comp-product_media img[src]"
+            ).get_attribute("src")
+            return img
+        except:
+            pass
+
+        try:
+            bg = driver.find_element(
+                By.CSS_SELECTOR,
+                "div#pdp_comp-product_media div.magnifier"
+            ).value_of_css_property("background-image")
+
+            url = re.search(r'url\(\"(.*)\"\)', bg)
+            if url:
+                return url.group(1)
+        except:
+            pass
+
+        try:
+            img = driver.find_element(
+                By.CSS_SELECTOR,
+                "img[data-testid='PDPMainImage']"
+            ).get_attribute("src")
+            return img
         except:
             return "-"
 
