@@ -82,13 +82,6 @@ def scrape_prodnetafarm(MAX_SCRAPE=1000):
             driver.get(BASE_URL.format(current_page))
             time.sleep(2)  # tunggu halaman load
 
-            # Tunggu minimal 1 produk muncul
-            try:
-                wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "a.css-79elbk")))
-            except:
-                scrape_status["message"] = f"Tidak ada produk di halaman {current_page}, hentikan scraping."
-                break
-
             # Ambil semua link produk di halaman ini
             produk_elements = driver.find_elements(By.CSS_SELECTOR, "a.css-79elbk")
             links = list({p.get_attribute("href") for p in produk_elements if p.get_attribute("href")})
