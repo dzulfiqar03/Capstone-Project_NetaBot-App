@@ -16,7 +16,6 @@ from threading import Thread
 
 app = Flask(__name__)
 
-# Global status untuk monitoring
 scrape_status = {
     "running": False,
     "total_scraped": 0,
@@ -25,27 +24,22 @@ scrape_status = {
 }
 
 def scrape_prodnetafarm(MAX_SCRAPE=1000):
-    scrape_status["running"] = True
-    scrape_status["total_scraped"] = 0
-    scrape_status["last_product"] = ""
-    scrape_status["message"] = "Mulai scraping…"
-
+    scrape_status.update({"running": True, "total_scraped": 0, "last_product": "", "message": "Mulai scraping…"})
+    
     API_ENDPOINT = os.environ.get('API_ENDPOINT')
     BASE_URL = "https://www.tokopedia.com/netafarm/product?page={}"
     current_page = 1
     all_data = []
     total_scraped = 0
 
-    # Setup Selenium headless Chromium
+    # Selenium headless Chromium
     options = Options()
     options.binary_location = "/usr/bin/chromium"
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
-    options.add_argument(
-        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    )
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
     service = Service("/usr/bin/chromedriver")
     driver = webdriver.Chrome(service=service, options=options)
@@ -84,54 +78,43 @@ def scrape_prodnetafarm(MAX_SCRAPE=1000):
 
     try:
         while total_scraped < MAX_SCRAPE:
-            scrape_status["message"] = f"Scraping halaman {current_page}..."
+            scrape_status["message"] = f"Scraping halaman {current_page}…"
             driver.get(BASE_URL.format(current_page))
-            time.sleep(3)
+            time.sleep(2)  # tunggu halaman load
 
-            # Scroll hingga semua item termuat
-            last_height = driver.execute_script("return document.body.scrollHeight")
-            while True:
-                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(2)
-                new_height = driver.execute_script("return document.body.scrollHeight")
-                if new_height == last_height:
-                    break
-                last_height = new_height
-
-            # Ambil semua link produk yang mengandung /product/
-            produk_elements = driver.find_elements(By.CSS_SELECTOR, "div.css-tjjb18 div.css-79elbk > a")
-            scrape_status["message"] = f"Ditemukan {len(produk_elements)} link produk"
-            links = [p.get_attribute("href") for p in produk_elements if p.get_attribute("href")]
-
-            if not links:
-                scrape_status["message"] = "Tidak ada link produk, hentikan scraping."
+            # Tunggu minimal 1 produk muncul
+            try:
+                wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "a.css-79elbk")))
+            except:
+                scrape_status["message"] = f"Tidak ada produk di halaman {current_page}, hentikan scraping."
                 break
 
-            # Loop per produk
+            # Ambil semua link produk di halaman ini
+            produk_elements = driver.find_elements(By.CSS_SELECTOR, "a.css-79elbk")
+            links = list({p.get_attribute("href") for p in produk_elements if p.get_attribute("href")})
+            scrape_status["message"] = f"Ditemukan {len(links)} produk di page {current_page}"
+
+            if not links:
+                break
+
             for link in links:
                 if total_scraped >= MAX_SCRAPE:
                     break
 
                 try:
                     driver.get(link)
-                    wait.until(EC.presence_of_element_located(
-                        (By.CSS_SELECTOR, "h1[data-testid='lblPDPDetailProductName']")
-                    ))
+                    wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "h1[data-testid='lblPDPDetailProductName']")))
                     time.sleep(1)
 
                     soup = BeautifulSoup(driver.page_source, "html.parser")
-
-                    # Ambil rating & sold
+                    # Ambil JSON Tokopedia
                     json_script = soup.find("script", {"id": "pdp-script"})
-                    rating = "0"
-                    sold = "0"
+                    rating, sold = "0", "0"
                     if json_script:
                         try:
                             data_json = json.loads(json_script.text)
-                            if "rating" in data_json and "score" in data_json["rating"]:
-                                rating = str(data_json["rating"]["score"])
-                            if "txStats" in data_json and "countSold" in data_json["txStats"]:
-                                sold = str(data_json["txStats"]["countSold"])
+                            rating = str(data_json.get("rating", {}).get("score", "0"))
+                            sold = str(data_json.get("txStats", {}).get("countSold", "0"))
                         except:
                             pass
 
@@ -139,19 +122,15 @@ def scrape_prodnetafarm(MAX_SCRAPE=1000):
                         sold_elem = soup.find("p", {"data-testid": "lblPDPDetailProductSoldCounter"})
                         if sold_elem:
                             angka = re.findall(r'\d+', sold_elem.text)
-                            if angka:
-                                sold = angka[0]
+                            if angka: sold = angka[0]
 
                     if rating == "0":
                         rating_elem = soup.find("span", {"data-testid": "lblPDPDetailProductRatingNumber"})
-                        if rating_elem:
-                            rating = rating_elem.text.strip()
+                        if rating_elem: rating = rating_elem.text.strip()
 
-                    # Nama & Harga
                     nama = soup.find("h1", {"data-testid": "lblPDPDetailProductName"}).text.strip()
                     harga_text = soup.find("div", {"data-testid": "lblPDPDetailProductPrice"}).text.strip()
                     harga_num = int(re.sub(r'[^0-9]', '', harga_text))
-
                     gambar = get_product_image()
 
                     try:
@@ -175,8 +154,15 @@ def scrape_prodnetafarm(MAX_SCRAPE=1000):
                         except:
                             pass
 
+                    total_scraped += 1
+                    scrape_status.update({
+                        "total_scraped": total_scraped,
+                        "last_product": nama,
+                        "message": f"Produk ke-{total_scraped}: {nama}"
+                    })
+
                     all_data.append({
-                        "No": total_scraped + 1,
+                        "No": total_scraped,
                         "Nama": nama,
                         "Harga": harga_text,
                         "Rating": rating,
@@ -186,28 +172,21 @@ def scrape_prodnetafarm(MAX_SCRAPE=1000):
                         "Link": link
                     })
 
-                    total_scraped += 1
-                    scrape_status["total_scraped"] = total_scraped
-                    scrape_status["last_product"] = nama
-                    scrape_status["message"] = f"Produk ke-{total_scraped}: {nama}"
-
                 except Exception as e:
                     scrape_status["message"] = f"Error detail: {e}"
                     continue
 
-            if total_scraped >= MAX_SCRAPE:
-                break
-
-            current_page += 1
+            current_page += 1  # lanjut ke halaman berikutnya
 
     finally:
         driver.quit()
         df = pd.DataFrame(all_data)
         df.to_excel("produk_netafarm.xlsx", index=False)
-        scrape_status["message"] = f"Selesai! Total produk tersimpan: {len(df)}"
-        scrape_status["running"] = False
+        scrape_status.update({
+            "message": f"Selesai! Total produk tersimpan: {len(df)}",
+            "running": False
+        })
 
-# Route untuk memulai scraping
 @app.route("/scrape", methods=["GET"])
 def scrape_route():
     if scrape_status["running"]:
@@ -216,7 +195,6 @@ def scrape_route():
     thread.start()
     return jsonify({"status":"started","message":"Scraping dimulai di background"})
 
-# Route untuk cek status
 @app.route("/scrape_status", methods=["GET"])
 def status_route():
     return jsonify(scrape_status)
