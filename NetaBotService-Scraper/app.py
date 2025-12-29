@@ -16,6 +16,7 @@ from threading import Thread
 
 app = Flask(__name__)
 
+# Global status untuk monitoring
 scrape_status = {
     "running": False,
     "total_scraped": 0,
@@ -23,7 +24,7 @@ scrape_status = {
     "message": ""
 }
 
-def scrape_prodnetafarm():
+def scrape_prodnetafarm(MAX_SCRAPE=1000):
     scrape_status["running"] = True
     scrape_status["total_scraped"] = 0
     scrape_status["last_product"] = ""
@@ -33,17 +34,15 @@ def scrape_prodnetafarm():
     BASE_URL = "https://www.tokopedia.com/netafarm/product?page={}"
     current_page = 1
     all_data = []
-    seen_links = set()
+    total_scraped = 0
 
-    # Setup Selenium headless
+    # Setup Selenium headless Chromium
     options = Options()
     options.binary_location = "/usr/bin/chromium"
     options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1920,1080")
-    options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument(
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
@@ -54,25 +53,42 @@ def scrape_prodnetafarm():
 
     def get_product_image():
         try:
-            img = driver.find_element(By.CSS_SELECTOR, "img[src]").get_attribute("src")
+            img = driver.find_element(
+                By.CSS_SELECTOR,
+                "div#pdp_comp-product_media img[src]"
+            ).get_attribute("src")
+            return img
+        except:
+            pass
+
+        try:
+            bg = driver.find_element(
+                By.CSS_SELECTOR,
+                "div#pdp_comp-product_media div.magnifier"
+            ).value_of_css_property("background-image")
+
+            url = re.search(r'url\(\"(.*)\"\)', bg)
+            if url:
+                return url.group(1)
+        except:
+            pass
+
+        try:
+            img = driver.find_element(
+                By.CSS_SELECTOR,
+                "img[data-testid='PDPMainImage']"
+            ).get_attribute("src")
             return img
         except:
             return "-"
 
     try:
-        while True:
+        while total_scraped < MAX_SCRAPE:
             scrape_status["message"] = f"Scraping halaman {current_page}..."
-            print(f"[DEBUG] Buka halaman: {BASE_URL.format(current_page)}")
-            try:
-                driver.get(BASE_URL.format(current_page))
-            except Exception as e:
-                scrape_status["message"] = f"Error buka halaman {current_page}: {e}"
-                print(f"[ERROR] Tidak bisa membuka halaman {current_page}: {e}")
-                break
-
+            driver.get(BASE_URL.format(current_page))
             time.sleep(3)
 
-            # Scroll agar produk termuat
+            # Scroll hingga semua item termuat
             last_height = driver.execute_script("return document.body.scrollHeight")
             while True:
                 driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
@@ -82,45 +98,72 @@ def scrape_prodnetafarm():
                     break
                 last_height = new_height
 
-            produk_elements = driver.find_elements(By.CSS_SELECTOR, "a[href*='/product/']")
-            links = [p.get_attribute("href") for p in produk_elements if p.get_attribute("href") not in seen_links]
+            # Ambil semua link produk yang mengandung /product/
+            produk_elements = driver.find_elements(By.CSS_SELECTOR, "div.css-tjjb18 div.css-79elbk > a")
+            scrape_status["message"] = f"Ditemukan {len(produk_elements)} link produk"
+            links = [p.get_attribute("href") for p in produk_elements if p.get_attribute("href")]
 
             if not links:
-                scrape_status["message"] = "Tidak ada link baru, selesai scraping."
-                print("[DEBUG] Tidak ada link baru, hentikan scraping.")
+                scrape_status["message"] = "Tidak ada link produk, hentikan scraping."
                 break
 
+            # Loop per produk
             for link in links:
+                if total_scraped >= MAX_SCRAPE:
+                    break
+
                 try:
-                    print(f"[DEBUG] Buka produk: {link}")
                     driver.get(link)
-                    wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "h1")))
+                    wait.until(EC.presence_of_element_located(
+                        (By.CSS_SELECTOR, "h1[data-testid='lblPDPDetailProductName']")
+                    ))
                     time.sleep(1)
 
                     soup = BeautifulSoup(driver.page_source, "html.parser")
 
-                    nama_elem = soup.find("h1")
-                    nama = nama_elem.text.strip() if nama_elem else "-"
+                    # Ambil rating & sold
+                    json_script = soup.find("script", {"id": "pdp-script"})
+                    rating = "0"
+                    sold = "0"
+                    if json_script:
+                        try:
+                            data_json = json.loads(json_script.text)
+                            if "rating" in data_json and "score" in data_json["rating"]:
+                                rating = str(data_json["rating"]["score"])
+                            if "txStats" in data_json and "countSold" in data_json["txStats"]:
+                                sold = str(data_json["txStats"]["countSold"])
+                        except:
+                            pass
 
-                    harga_elem = soup.find("div", {"data-testid": "lblPDPDetailProductPrice"})
-                    harga_text = harga_elem.text.strip() if harga_elem else "0"
-                    harga_num = int(re.sub(r'[^0-9]', '', harga_text)) if harga_text else 0
+                    if sold == "0":
+                        sold_elem = soup.find("p", {"data-testid": "lblPDPDetailProductSoldCounter"})
+                        if sold_elem:
+                            angka = re.findall(r'\d+', sold_elem.text)
+                            if angka:
+                                sold = angka[0]
 
-                    rating_elem = soup.find("span", {"data-testid": "lblPDPDetailProductRatingNumber"})
-                    rating = rating_elem.text.strip() if rating_elem else "0"
+                    if rating == "0":
+                        rating_elem = soup.find("span", {"data-testid": "lblPDPDetailProductRatingNumber"})
+                        if rating_elem:
+                            rating = rating_elem.text.strip()
 
-                    sold_elem = soup.find("p", {"data-testid": "lblPDPDetailProductSoldCounter"})
-                    sold = re.search(r'\d+', sold_elem.text).group(0) if sold_elem and re.search(r'\d+', sold_elem.text) else "0"
-
-                    desc_elem = driver.find_elements(By.CSS_SELECTOR, "div[data-testid*='DescriptionProduk']")
-                    deskripsi = BeautifulSoup(desc_elem[0].get_attribute("innerHTML"), "html.parser").get_text("\n").strip() if desc_elem else "Tidak ada deskripsi"
+                    # Nama & Harga
+                    nama = soup.find("h1", {"data-testid": "lblPDPDetailProductName"}).text.strip()
+                    harga_text = soup.find("div", {"data-testid": "lblPDPDetailProductPrice"}).text.strip()
+                    harga_num = int(re.sub(r'[^0-9]', '', harga_text))
 
                     gambar = get_product_image()
 
-                    # Simpan ke API Laravel
+                    try:
+                        desc_box = driver.find_element(By.CSS_SELECTOR, "div[data-testid='lblPDPDescriptionProduk']")
+                        deskripsi = BeautifulSoup(desc_box.get_attribute("innerHTML"), "html.parser").get_text("\n").strip()
+                    except:
+                        deskripsi = "Tidak ada deskripsi"
+
+                    # Simpan ke API jika ada
                     if API_ENDPOINT:
                         try:
-                            resp = requests.post(API_ENDPOINT, json={
+                            requests.post(API_ENDPOINT, json={
                                 "name": nama,
                                 "price": harga_num,
                                 "description": deskripsi,
@@ -128,13 +171,12 @@ def scrape_prodnetafarm():
                                 "rating": rating,
                                 "sold": sold,
                                 "link": link
-                            }, timeout=10)
-                            print(f"[DEBUG] API response: {resp.status_code}")
-                        except Exception as e:
-                            print(f"[ERROR] API Laravel gagal: {e}")
+                            })
+                        except:
+                            pass
 
                     all_data.append({
-                        "No": scrape_status["total_scraped"] + 1,
+                        "No": total_scraped + 1,
                         "Nama": nama,
                         "Harga": harga_text,
                         "Rating": rating,
@@ -144,16 +186,17 @@ def scrape_prodnetafarm():
                         "Link": link
                     })
 
-                    scrape_status["total_scraped"] += 1
+                    total_scraped += 1
+                    scrape_status["total_scraped"] = total_scraped
                     scrape_status["last_product"] = nama
-                    scrape_status["message"] = f"Produk ke-{scrape_status['total_scraped']}: {nama}"
-                    seen_links.add(link)
-                    time.sleep(1 + (0.5 * (scrape_status["total_scraped"] % 3)))
+                    scrape_status["message"] = f"Produk ke-{total_scraped}: {nama}"
 
                 except Exception as e:
-                    scrape_status["message"] = f"Error detail produk: {e}"
-                    print(f"[ERROR] Produk {link} gagal: {e}")
+                    scrape_status["message"] = f"Error detail: {e}"
                     continue
+
+            if total_scraped >= MAX_SCRAPE:
+                break
 
             current_page += 1
 
@@ -163,8 +206,8 @@ def scrape_prodnetafarm():
         df.to_excel("produk_netafarm.xlsx", index=False)
         scrape_status["message"] = f"Selesai! Total produk tersimpan: {len(df)}"
         scrape_status["running"] = False
-        print("[DEBUG] Scraping selesai.")
 
+# Route untuk memulai scraping
 @app.route("/scrape", methods=["GET"])
 def scrape_route():
     if scrape_status["running"]:
@@ -173,10 +216,11 @@ def scrape_route():
     thread.start()
     return jsonify({"status":"started","message":"Scraping dimulai di background"})
 
+# Route untuk cek status
 @app.route("/scrape_status", methods=["GET"])
 def status_route():
     return jsonify(scrape_status)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=False)
