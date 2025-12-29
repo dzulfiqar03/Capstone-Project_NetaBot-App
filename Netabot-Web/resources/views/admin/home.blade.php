@@ -96,7 +96,7 @@ document.getElementById('btnScrape').addEventListener('click', function() {
                                     {{ Str::limit($items['description'], 80, '...') }}
                                 </td>
                                 <td class="my-auto">
-                                    <a  class="bg-green-800 p-2 rounded-full" href="{{ $items['link'] }}"><span>Details</span></a>
+                                    <a  class="bg-green-800 p-2 rounded-full text-white" href="{{ $items['link'] }}"><span>Details</span></a>
                                 </td>
                             </tr>
                         @endforeach
