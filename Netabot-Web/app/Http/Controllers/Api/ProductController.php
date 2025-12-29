@@ -30,7 +30,7 @@ class ProductController extends Controller
     ]);
 
     $product = Product::updateOrCreate(
-    ['link' => $validated['link']], // gunakan link sebagai unique key
+    ['name' => $validated['name']], // gunakan link sebagai unique key
     $validated
 );
 
