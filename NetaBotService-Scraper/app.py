@@ -31,7 +31,7 @@ def scrape_prodnetafarm(MAX_SCRAPE=1000):
     scrape_status["message"] = "Mulai scraping…"
 
     API_ENDPOINT = os.environ.get('API_ENDPOINT')
-    BASE_URL = "https://www.tokopedia.com/netafarm/product?page={}"
+    BASE_URL = "https://www.tokopedia.com/netafarm/product/page/{}"
     current_page = 1
     all_data = []
     total_scraped = 0
