@@ -1,0 +1,1 @@
+[09-Jan-2026 16:32:19 UTC] PHP Fatal error:  Composer detected issues in your platform: Your Composer dependencies require a PHP version ">= 8.2.0". You are running 8.1.33. in /home/netabotm/public_html/vendor/composer/platform_check.php on line 24
