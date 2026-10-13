@@ -93,11 +93,11 @@
                                 .prepend(`
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <img src="https://b856188.smushcdn.com/856188/wp-content/uploads/2024/03/Logo-Vertikal-Telkom-University.png?lossy=2&strip=0&avif=1" alt="Logo" style="width: 60px; height: auto;">
-                        <h1 style="font-size: 20px; margin: 0;">Bank Sampah</h1>
+                        <img src="https://netafarmid.com/wp-content/uploads/2024/05/logo_ntfrm_nw-removebg-preview.png" alt="Logo" style="width: 60px; height: auto;">
+                        <h1 style="font-size: 20px; margin: 0;">Netafarm Indolestari</h1>
                     </div>
                     <div style="text-align: right;">
-                        <p style="font-size: 14px; margin: 0;">Laporan Data Sampah</p>
+                        <p style="font-size: 14px; margin: 0;">Daftar Produk Netafarm</p>
                         <p style="font-size: 12px; margin: 0;">Dicetak pada: ${new Date().toLocaleDateString()}</p>
                     </div>
                 </div>
@@ -149,10 +149,10 @@
             class="appearance-none border dark:border-gray-600 rounded-md pl-2 pr-6 py-1 text-sm
                    bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100">
             <option value="">Semua</option>
-            <option value="Kering">Kering</option>
-            <option value="Plastik">Plastik</option>
-            <option value="Logam">Logam</option>
-            <option value="Cair">Cair</option>
+            <option value="Pupuk">Pupuk</option>
+            <option value="Plastik">Benih</option>
+            <option value="Herbisida">Herbisida</option>
+            <option value="Selang">Selang</option>
         </select>
        
     </div>

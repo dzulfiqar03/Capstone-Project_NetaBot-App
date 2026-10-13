@@ -18,37 +18,51 @@
             <div id="scrapeStatus" class="mt-3 text-sm text-gray-700"></div>
 
             <script>
-                document.getElementById('btnScrape').addEventListener('click', function() {
-                    let btn = this;
-                    btn.disabled = true;
-                    btn.innerText = 'Menjalankan...';
+document.getElementById('btnScrape').addEventListener('click', function() {
+    let btn = this;
+    let statusDiv = document.getElementById('scrapeStatus');
 
-                    fetch('{{ route('scrape.run') }}', {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json',
-                                'Content-Type': 'application/json'
-                            }
-                        })
-                        .then(res => res.json())
-                        .then(data => {
-                            btn.disabled = false;
-                            btn.innerText = 'Jalankan Scraping';
+    btn.disabled = true;
+    btn.innerText = 'Menjalankan...';
+    statusDiv.innerHTML = '';
 
-                            document.getElementById('scrapeStatus').innerHTML =
-                                data.message ?
-                                `<span class="text-green-600">${data.message}</span>` :
-                                `<span class="text-red-600">${data.error}</span>`;
-                        })
-                        .catch(err => {
-                            btn.disabled = false;
-                            btn.innerText = 'Jalankan Scraping';
-                            document.getElementById('scrapeStatus').innerHTML =
-                                `<span class="text-red-600">${err}</span>`;
-                        });
-                });
-            </script>
+    fetch('{{ route('scrape.run') }}', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(res => {
+        // cek content-type dulu
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+            throw new Error('Response bukan JSON, kemungkinan HTML/error page');
+        }
+        return res.json();
+    })
+    .then(data => {
+        btn.disabled = false;
+        btn.innerText = 'Jalankan Scraping';
+        if (data.message) {
+            statusDiv.innerHTML = `<span class="text-green-600">${data.message}</span>`;
+        } else if (data.error) {
+            statusDiv.innerHTML = `<span class="text-red-600">${data.error}</span>`;
+        } else {
+            statusDiv.innerHTML = `<span class="text-gray-600">Scraping selesai</span>`;
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerText = 'Jalankan Scraping';
+        statusDiv.innerHTML = `<span class="text-red-600">${err.message}</span>`;
+        console.error('Fetch error:', err);
+    });
+});
+</script>
+
+
                 </div>
                
             </div>
@@ -82,7 +96,7 @@
                                     {{ Str::limit($items['description'], 80, '...') }}
                                 </td>
                                 <td class="my-auto">
-                                    <a  class="bg-green-800 p-2 rounded-full" href="{{ $items['link'] }}"><span>Details</span></a>
+                                    <a  class="bg-green-800 p-2 rounded-full text-white" href="{{ $items['link'] }}"><span>Details</span></a>
                                 </td>
                             </tr>
                         @endforeach
